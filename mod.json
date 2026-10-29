@@ -1,0 +1,33 @@
+{
+	"geode": "4.6.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"version": "v0.1.0",
+	"id": "tunombre.ia-editor",
+	"name": "IA Editor",
+	"developer": "TuNombre",
+	"description": "Chat con una IA (Gemini) dentro del editor para construir niveles hablando.",
+	"settings": {
+		"api-key": {
+			"type": "string",
+			"name": "API key de Gemini",
+			"description": "Sacala gratis en Google AI Studio. No la compartas con nadie.",
+			"default": ""
+		},
+		"model": {
+			"type": "string",
+			"name": "Modelo",
+			"description": "Si da error de modelo, cambia este nombre por uno vigente de Google AI Studio.",
+			"default": "gemini-flash-latest"
+		},
+		"allow-delete": {
+			"type": "bool",
+			"name": "Permitir que la IA borre objetos",
+			"default": false
+		}
+	}
+}
