@@ -13,10 +13,10 @@ jobs:
       matrix:
         config:
           - name: Android32
-            os: ubuntu-22.04
+            os: ubuntu-latest
             target: Android32
           - name: Android64
-            os: ubuntu-22.04
+            os: ubuntu-latest
             target: Android64
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -26,6 +26,7 @@ jobs:
       - name: Compilar
         uses: geode-sdk/build-geode-mod@main
         with:
+          sdk: latest
           combine: true
           target: ${{ matrix.config.target }}
 
@@ -41,3 +42,4 @@ jobs:
         with:
           name: Mod compilado
           path: ${{ steps.build.outputs.build-output }}
+          
