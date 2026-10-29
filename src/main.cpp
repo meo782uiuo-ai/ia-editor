@@ -3,6 +3,7 @@
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/utils/web.hpp>
+#include <Geode/utils/async.hpp>
 #include <set>
 #include <algorithm>
 
@@ -130,20 +131,21 @@ static std::string describeLevel(LevelEditorLayer* lel, int from, int to) {
 // ---------------------------------------------------------------------------
 // Menu de chat
 // ---------------------------------------------------------------------------
-class AIChatPopup : public Popup<EditorUI*> {
+class AIChatPopup : public Popup {
 protected:
     EditorUI* m_ui = nullptr;
     TextInput* m_input = nullptr;
     CCLabelBMFont* m_log = nullptr;
     CCLabelBMFont* m_status = nullptr;
-    EventListener<web::WebTask> m_listener;
+    async::TaskHolder<web::WebResponse> m_listener;
     bool m_busy = false;
     float m_logMaxHeight = 150.f;
     int m_created = 0;
     int m_deleted = 0;
     int m_errors = 0;
 
-    bool setup(EditorUI* ui) override {
+    bool init(EditorUI* ui) {
+        if (!Popup::init(430.f, 290.f)) return false;
         m_ui = ui;
         this->setTitle("IA Editor");
 
@@ -217,7 +219,7 @@ protected:
 
     void onSend(CCObject*) {
         if (m_busy) return;
-        std::string text = m_input->getString();
+        std::string text(m_input->getString());
         if (text.empty()) return;
         m_input->setString("");
         this->appendChat("Tu: " + text);
@@ -294,27 +296,24 @@ protected:
         auto url = fmt::format(
             "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent", model);
 
-        m_listener.bind([this, depth](web::WebTask::Event* ev) {
-            if (auto res = ev->getValue()) {
-                this->onResponse(res, depth);
-            }
+        m_listener.spawn(req.post(url), [this, depth](web::WebResponse res) {
+            this->onResponse(res, depth);
         });
-        m_listener.setFilter(req.post(url));
     }
 
-    void onResponse(web::WebResponse* res, int depth) {
+    void onResponse(web::WebResponse& res, int depth) {
         m_busy = false;
         this->setStatus("");
 
-        if (!res->ok()) {
+        if (!res.ok()) {
             if (!g_history.empty()) g_history.pop_back();
-            std::string raw = res->string().unwrapOr("");
+            std::string raw = res.string().unwrapOr("");
             if (raw.size() > 160) raw = raw.substr(0, 160);
-            this->appendChat(fmt::format("Sistema: error {} de la API. {}", res->code(), raw));
+            this->appendChat(fmt::format("Sistema: error {} de la API. {}", res.code(), raw));
             return;
         }
 
-        auto json = res->json();
+        auto json = res.json();
         if (!json) {
             if (!g_history.empty()) g_history.pop_back();
             this->appendChat("Sistema: no pude leer la respuesta de la API.");
@@ -446,7 +445,7 @@ protected:
 public:
     static AIChatPopup* create(EditorUI* ui) {
         auto ret = new AIChatPopup();
-        if (ret->initAnchored(430.f, 290.f, ui, "GJ_square01.png")) {
+        if (ret->init(ui)) {
             ret->autorelease();
             return ret;
         }
