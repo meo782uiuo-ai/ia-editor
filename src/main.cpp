@@ -155,7 +155,7 @@ protected:
     bool init(EditorUI* ui) {
         if (!Popup::init(430.f, 290.f)) return false;
         m_ui = ui;
-        this->setTitle("IA Editor");
+        this->setTitle("IA Editor v0.2");
 
         auto size = m_mainLayer->getContentSize();
         float boxW = size.width - 30.f;
@@ -200,7 +200,7 @@ protected:
         menu->addChild(undoBtn);
 
         if (g_chat.empty()) {
-            g_chat = "IA: Hola, soy tu ayudante de editor. Dime que quieres construir.\n";
+            g_chat = "IA: [v0.2] Hola, soy tu ayudante de editor. Dime que quieres construir. Para guardar tu key escribe: /clave TU_KEY\n";
         }
         this->refreshLog();
         return true;
@@ -454,7 +454,7 @@ protected:
             auto lel = m_ui->m_editorLayer;
             std::vector<GameObject*> toRemove;
             CCArray* objs = lel->m_objects;
-for (int i = 0; objs && i < objs->count(); ++i) {
+            for (int i = 0; objs && i < objs->count(); ++i) {
                 auto o = static_cast<GameObject*>(objs->objectAtIndex(i));
                 if (!o) continue;
                 int gx = static_cast<int>(std::floor(o->getPositionX() / 30.f));
