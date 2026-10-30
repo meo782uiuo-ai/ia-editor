@@ -7,8 +7,8 @@
   "ios": "*"
  },
  "version": "v0.3.0",
- "id": "tunombre.ia-editor",
- "name": "IA Editor",
+ "id": "tunombre.ia-chat",
+ "name": "IA Chat Nuevo",
  "developer": "TuNombre",
  "description": "Chat con una IA (Gemini) dentro del editor para construir niveles hablando.",
  "settings": {
