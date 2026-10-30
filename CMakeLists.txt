@@ -9,7 +9,7 @@ else()
 endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-project(IAEditor VERSION 0.1.0)
+project(IAChatNuevo VERSION 0.3.0)
 
 file(GLOB SOURCES src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
