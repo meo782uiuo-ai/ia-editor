@@ -4,6 +4,8 @@
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/utils/web.hpp>
 #include <Geode/utils/async.hpp>
+#include <Geode/utils/file.hpp>
+#include <filesystem>
 #include <set>
 #include <algorithm>
 
@@ -60,6 +62,30 @@ static std::string trimKey(std::string s) {
     size_t i = 0;
     while (i < s.size() && bad(s[i])) ++i;
     return s.substr(i);
+}
+
+// Arregla claves a las que el teclado/campo les quita el punto:
+//  - "PUNTO" se cambia por "."
+//  - si empieza con AQ y no tiene el punto, se lo pone (las claves nuevas son "AQ.xxxx")
+static std::string normalizeKey(std::string k) {
+    k = trimKey(k);
+    size_t pos;
+    while ((pos = k.find("PUNTO")) != std::string::npos) k.replace(pos, 5, ".");
+    if (k.size() > 3 && k[0] == 'A' && k[1] == 'Q' && k[2] != '.') k.insert(2, ".");
+    return k;
+}
+
+// La clave se busca primero en key.txt (carpeta del mod) y despues en los ajustes
+static std::string loadKey() {
+    std::string k;
+    auto path = Mod::get()->getSaveDir() / "key.txt";
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec)) {
+        auto r = utils::file::readString(path);
+        if (r) k = r.unwrap();
+    }
+    if (trimKey(k).empty()) k = Mod::get()->getSettingValue<std::string>("api-key");
+    return normalizeKey(k);
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +181,7 @@ protected:
     bool init(EditorUI* ui) {
         if (!Popup::init(430.f, 290.f)) return false;
         m_ui = ui;
-        this->setTitle("IA Editor v0.2");
+        this->setTitle("IA Editor v0.3");
 
         auto size = m_mainLayer->getContentSize();
         float boxW = size.width - 30.f;
@@ -200,7 +226,7 @@ protected:
         menu->addChild(undoBtn);
 
         if (g_chat.empty()) {
-            g_chat = "IA: [v0.2] Hola, soy tu ayudante de editor. Dime que quieres construir. Para guardar tu key escribe: /clave TU_KEY\n";
+            g_chat = "IA: [v0.3] Hola, soy tu ayudante de editor. Dime que quieres construir. Para la key escribe /clave TU_KEY (si se pierde el punto, escribe PUNTO en su lugar). Comando /ruta muestra la carpeta del mod.\n";
         }
         this->refreshLog();
         return true;
@@ -231,14 +257,20 @@ protected:
         if (text.empty()) return;
         m_input->setString("");
         // /clave TU_API_KEY : guarda la clave sin pasar por los ajustes
+        if (text == "/ruta") {
+            this->appendChat("Sistema: carpeta del mod: " + Mod::get()->getSaveDir().string() +
+                             "  (puedes crear ahi un archivo key.txt con tu clave pegada)");
+            return;
+        }
         if (text.rfind("/clave", 0) == 0) {
-            std::string key = trimKey(text.size() > 6 ? text.substr(6) : "");
+            std::string key = normalizeKey(text.size() > 6 ? text.substr(6) : "");
             if (key.empty()) {
                 this->appendChat("Sistema: escribe /clave seguido de tu API key.");
             } else {
                 (void)Mod::get()->setSettingValue<std::string>("api-key", key);
-                this->appendChat(fmt::format("Sistema: clave guardada ({} caracteres, empieza con '{}').",
-                                             key.size(), key.substr(0, 3)));
+                this->appendChat(fmt::format("Sistema: clave guardada ({} caracteres, empieza con '{}', tiene punto: {}).",
+                                             key.size(), key.substr(0, 3),
+                                             key.find('.') != std::string::npos ? "si" : "no"));
             }
             return;
         }
@@ -262,7 +294,7 @@ protected:
 
     // -------- peticion a Gemini --------
     void ask(std::string userText, int depth, int lookFrom, int lookTo) {
-        auto key = trimKey(Mod::get()->getSettingValue<std::string>("api-key"));
+        auto key = loadKey();
         if (key.empty()) {
             this->appendChat("Sistema: falta la API key. Ponla en los ajustes del mod.");
             return;
@@ -331,9 +363,10 @@ protected:
             if (raw.size() > 160) raw = raw.substr(0, 160);
             this->appendChat(fmt::format("Sistema: error {} de la API. {}", res.code(), raw));
             if (res.code() == 400) {
-                auto k = trimKey(Mod::get()->getSettingValue<std::string>("api-key"));
-                this->appendChat(fmt::format("Sistema: la clave guardada tiene {} caracteres y empieza con '{}'.",
-                                             k.size(), k.substr(0, 3)));
+                auto k = loadKey();
+                this->appendChat(fmt::format("Sistema: la clave guardada tiene {} caracteres, empieza con '{}' y tiene punto: {}.",
+                                             k.size(), k.substr(0, 3),
+                                             k.find('.') != std::string::npos ? "si" : "no"));
             }
             return;
         }
