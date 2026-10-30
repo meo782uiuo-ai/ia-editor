@@ -54,6 +54,14 @@ static std::string g_chat;
 static std::string g_lastResult;
 static std::vector<GameObject*> g_lastBatch;
 
+static std::string trimKey(std::string s) {
+    auto bad = [](char c) { return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '"' || c == '\''; };
+    while (!s.empty() && bad(s.back())) s.pop_back();
+    size_t i = 0;
+    while (i < s.size() && bad(s[i])) ++i;
+    return s.substr(i);
+}
+
 // ---------------------------------------------------------------------------
 // "Ojos" de la IA: convierte el editor en un mapa de texto
 // ---------------------------------------------------------------------------
@@ -222,6 +230,18 @@ protected:
         std::string text(m_input->getString());
         if (text.empty()) return;
         m_input->setString("");
+        // /clave TU_API_KEY : guarda la clave sin pasar por los ajustes
+        if (text.rfind("/clave", 0) == 0) {
+            std::string key = trimKey(text.size() > 6 ? text.substr(6) : "");
+            if (key.empty()) {
+                this->appendChat("Sistema: escribe /clave seguido de tu API key.");
+            } else {
+                (void)Mod::get()->setSettingValue<std::string>("api-key", key);
+                this->appendChat(fmt::format("Sistema: clave guardada ({} caracteres, empieza con '{}').",
+                                             key.size(), key.substr(0, 3)));
+            }
+            return;
+        }
         this->appendChat("Tu: " + text);
         this->ask(text, 0, 0, 0);
     }
@@ -242,7 +262,7 @@ protected:
 
     // -------- peticion a Gemini --------
     void ask(std::string userText, int depth, int lookFrom, int lookTo) {
-        auto key = Mod::get()->getSettingValue<std::string>("api-key");
+        auto key = trimKey(Mod::get()->getSettingValue<std::string>("api-key"));
         if (key.empty()) {
             this->appendChat("Sistema: falta la API key. Ponla en los ajustes del mod.");
             return;
@@ -310,6 +330,11 @@ protected:
             std::string raw = res.string().unwrapOr("");
             if (raw.size() > 160) raw = raw.substr(0, 160);
             this->appendChat(fmt::format("Sistema: error {} de la API. {}", res.code(), raw));
+            if (res.code() == 400) {
+                auto k = trimKey(Mod::get()->getSettingValue<std::string>("api-key"));
+                this->appendChat(fmt::format("Sistema: la clave guardada tiene {} caracteres y empieza con '{}'.",
+                                             k.size(), k.substr(0, 3)));
+            }
             return;
         }
 
@@ -429,7 +454,7 @@ protected:
             auto lel = m_ui->m_editorLayer;
             std::vector<GameObject*> toRemove;
             CCArray* objs = lel->m_objects;
-            for (int i = 0; objs && i < objs->count(); ++i) {
+for (int i = 0; objs && i < objs->count(); ++i) {
                 auto o = static_cast<GameObject*>(objs->objectAtIndex(i));
                 if (!o) continue;
                 int gx = static_cast<int>(std::floor(o->getPositionX() / 30.f));
