@@ -15,8 +15,9 @@
   "api-key": {
    "type": "string",
    "name": "API key de Gemini",
-   "description": "Sacala gratis en Google AI Studio. No la compartas con nadie.",
-   "default": ""
+   "description": "Tambien puedes guardarla desde el chat escribiendo /clave y tu key.",
+   "default": "",
+   "filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
   },
   "model": {
    "type": "string",
